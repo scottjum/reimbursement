@@ -4,14 +4,16 @@ import logging
 import traceback
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from fastapi import FastAPI, UploadFile, HTTPException, Depends, Query
+import json
+
+from fastapi import FastAPI, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from landingai_ade import LandingAIADE
 
 from database import Database
+from schemas import ExtractResultsFile, MigrationResult
 
 load_dotenv(override=True)
 
@@ -217,6 +219,36 @@ async def get_all_insured_information_by_patient_id(patient_id: int):
 async def get_all_other_insurance_information_by_insured_id(insured_id: int):
     """ Get all other insurance information by insured id """
     return database.get_all_other_insurance_information_by_insured_id(insured_id)
+
+@app.post("/database/migrate_extract", response_model=MigrationResult)
+async def migrate_extract_results(payload: ExtractResultsFile, dry_run: bool = False):
+    """
+    Insert a LandingAI extract-results.json payload into Supabase.
+
+    - Pass the full JSON as request body.
+    - Use `dry_run=true` to preview normalized payloads without writing.
+    """
+    return database.migrate_extract_results(payload, dry_run=dry_run)
+
+@app.post("/database/migrate_extract_file", response_model=MigrationResult)
+async def migrate_extract_results_file(file: UploadFile, dry_run: bool = False):
+    """
+    Same as /database/migrate_extract but accepts a JSON file upload.
+    """
+    try:
+        raw_bytes = await file.read()
+        if not raw_bytes:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty")
+        try:
+            raw = json.loads(raw_bytes.decode("utf-8"))
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}") from e
+        payload = ExtractResultsFile.model_validate(raw)
+        return database.migrate_extract_results(payload, dry_run=dry_run)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 @app.get("/")
 async def read_root():
