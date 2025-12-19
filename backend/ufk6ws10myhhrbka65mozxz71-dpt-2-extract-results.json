@@ -1,0 +1,307 @@
+{
+  "extraction": {
+    "insuredInformation": {
+      "lastName": "Sample",
+      "firstName": "Joseph",
+      "dateOfBirth": "03/25/1985",
+      "identificationNumber": "123456789",
+      "address": "12 Cherry Lane",
+      "MI": "K",
+      "city": "Tampa Bay",
+      "state": "FL",
+      "zip": "33592",
+      "telephone": "407 555 1212",
+      "employerName": "Acme Inc.",
+      "insurancePlanName": "Horizon Medical Health",
+      "anotherInsurancePlan": false,
+      "sex": "M"
+    },
+    "patientInformation": {
+      "relationshipToInsured": "Self",
+      "status": "Married, EMPLOYED",
+      "conditionRelatedToEmployment": "No",
+      "conditionRelatedToAutoAccident": "No",
+      "dateOfCurrentIllness": "10/15/2025",
+      "conditionRelatedToOther": "No",
+      "autoAccidentPlace": null,
+      "patientLastName": null,
+      "patientFirstName": null,
+      "patientMI": null,
+      "patientDateOfBirth": null,
+      "patientSex": null,
+      "patientTelephone": null,
+      "patientAddress": null,
+      "patientCity": null,
+      "patientState": null,
+      "patientZip": null
+    },
+    "otherInsuranceInformation": {
+      "policyHolderLastName": null,
+      "policyHolderFirstName": null,
+      "dateOfBirth": null,
+      "identificationNumber": null,
+      "insurancePlanName": null,
+      "policyHolderMI": null,
+      "policyHolderSex": null,
+      "policyHolderTelephone": null,
+      "policyHolderEmployerName": null
+    },
+    "attestation": {
+      "dateOfPatient": "11/05/2025",
+      "providerName": "Dr. John Persimmon",
+      "taxNumber": "47-2536106",
+      "NPINumber": "33417596",
+      "dateOfInsured": "11/05/2025"
+    }
+  },
+  "extraction_metadata": {
+    "insuredInformation": {
+      "lastName": {
+        "value": "Sample",
+        "references": [
+          "3bceab02-1104-4ec7-9e6a-39a07586c5f7"
+        ]
+      },
+      "firstName": {
+        "value": "Joseph",
+        "references": [
+          "3bceab02-1104-4ec7-9e6a-39a07586c5f7"
+        ]
+      },
+      "dateOfBirth": {
+        "value": "03/25/1985",
+        "references": [
+          "3bceab02-1104-4ec7-9e6a-39a07586c5f7"
+        ]
+      },
+      "identificationNumber": {
+        "value": "123456789",
+        "references": [
+          "3bceab02-1104-4ec7-9e6a-39a07586c5f7"
+        ]
+      },
+      "address": {
+        "value": "12 Cherry Lane",
+        "references": [
+          "3bceab02-1104-4ec7-9e6a-39a07586c5f7"
+        ]
+      },
+      "MI": {
+        "value": "K",
+        "references": [
+          "3bceab02-1104-4ec7-9e6a-39a07586c5f7"
+        ]
+      },
+      "city": {
+        "value": "Tampa Bay",
+        "references": [
+          "3bceab02-1104-4ec7-9e6a-39a07586c5f7"
+        ]
+      },
+      "state": {
+        "value": "FL",
+        "references": [
+          "3bceab02-1104-4ec7-9e6a-39a07586c5f7"
+        ]
+      },
+      "zip": {
+        "value": "33592",
+        "references": [
+          "3bceab02-1104-4ec7-9e6a-39a07586c5f7"
+        ]
+      },
+      "telephone": {
+        "value": "407 555 1212",
+        "references": [
+          "3bceab02-1104-4ec7-9e6a-39a07586c5f7"
+        ]
+      },
+      "employerName": {
+        "value": "Acme Inc.",
+        "references": [
+          "3bceab02-1104-4ec7-9e6a-39a07586c5f7"
+        ]
+      },
+      "insurancePlanName": {
+        "value": "Horizon Medical Health",
+        "references": [
+          "3bceab02-1104-4ec7-9e6a-39a07586c5f7"
+        ]
+      },
+      "anotherInsurancePlan": {
+        "value": false,
+        "references": [
+          "3bceab02-1104-4ec7-9e6a-39a07586c5f7"
+        ]
+      },
+      "Sex": {
+        "value": "M",
+        "references": [
+          "3bceab02-1104-4ec7-9e6a-39a07586c5f7"
+        ]
+      }
+    },
+    "patientInformation": {
+      "relationshipToInsured": {
+        "value": "Self",
+        "references": [
+          "093c90f5-80a0-4460-987d-1f3249810f0c"
+        ]
+      },
+      "status": {
+        "value": "Married, EMPLOYED",
+        "references": [
+          "093c90f5-80a0-4460-987d-1f3249810f0c"
+        ]
+      },
+      "conditionRelatedToEmployment": {
+        "value": "No",
+        "references": [
+          "093c90f5-80a0-4460-987d-1f3249810f0c"
+        ]
+      },
+      "conditionRelatedToAutoAccident": {
+        "value": "No",
+        "references": [
+          "093c90f5-80a0-4460-987d-1f3249810f0c"
+        ]
+      },
+      "dateOfCurrentIllness": {
+        "value": "10/15/2025",
+        "references": [
+          "093c90f5-80a0-4460-987d-1f3249810f0c"
+        ]
+      },
+      "conditionRelatedToOther": {
+        "value": "No",
+        "references": [
+          "093c90f5-80a0-4460-987d-1f3249810f0c"
+        ]
+      },
+      "autoAccidentPlace": {
+        "value": null,
+        "references": []
+      },
+      "patientLastName": {
+        "value": null,
+        "references": []
+      },
+      "patientFirstName": {
+        "value": null,
+        "references": []
+      },
+      "patientMI": {
+        "value": null,
+        "references": []
+      },
+      "patientDateOfBirth": {
+        "value": null,
+        "references": []
+      },
+      "patientSex": {
+        "value": null,
+        "references": []
+      },
+      "patientTelephone": {
+        "value": null,
+        "references": []
+      },
+      "patientAddress": {
+        "value": null,
+        "references": []
+      },
+      "patientCity": {
+        "value": null,
+        "references": []
+      },
+      "patientState": {
+        "value": null,
+        "references": []
+      },
+      "patientZip": {
+        "value": null,
+        "references": []
+      }
+    },
+    "otherInsuranceInformation": {
+      "policyHolderLastName": {
+        "value": null,
+        "references": []
+      },
+      "policyHolderFirstName": {
+        "value": null,
+        "references": []
+      },
+      "dateOfBirth": {
+        "value": null,
+        "references": []
+      },
+      "identificationNumber": {
+        "value": null,
+        "references": []
+      },
+      "insurancePlanName": {
+        "value": null,
+        "references": []
+      },
+      "policyHolderMI": {
+        "value": null,
+        "references": []
+      },
+      "policyHolderSex": {
+        "value": null,
+        "references": []
+      },
+      "policyHolderTelephone": {
+        "value": null,
+        "references": []
+      },
+      "policyHolderEmployerName": {
+        "value": null,
+        "references": []
+      }
+    },
+    "attestation": {
+      "dateOfPatient": {
+        "value": "11/05/2025",
+        "references": [
+          "4558a047-0bf8-4d7f-a161-f9825e8c92eb"
+        ]
+      },
+      "providerName": {
+        "value": "Dr. John Persimmon",
+        "references": [
+          "4558a047-0bf8-4d7f-a161-f9825e8c92eb"
+        ]
+      },
+      "taxNumber": {
+        "value": "47-2536106",
+        "references": [
+          "4558a047-0bf8-4d7f-a161-f9825e8c92eb"
+        ]
+      },
+      "NPINumber": {
+        "value": "33417590",
+        "references": [
+          "4558a047-0bf8-4d7f-a161-f9825e8c92eb"
+        ]
+      },
+      "dateOfInsured": {
+        "value": "11/05/2025",
+        "references": [
+          "4558a047-0bf8-4d7f-a161-f9825e8c92eb"
+        ]
+      }
+    }
+  },
+  "metadata": {
+    "filename": "markdown.md",
+    "org_id": null,
+    "duration_ms": 11776,
+    "credit_usage": 2.088,
+    "job_id": "c1076221f8ae4dde8989db7b98e38b4a",
+    "version": "extract-20251024",
+    "schema_violation_error": "Extracted data does not completely conform to the requested schema. See below error for details.\nNone is not of type 'string'\n\nFailed validating 'type' in schema['properties']['patientInformation']['properties']['autoAccidentPlace']:\n    {'type': 'string',\n     'description': 'The state in which the auto accident occurred.'}\n\nOn instance['patientInformation']['autoAccidentPlace']:\n    None\nPlease read our documentation for more information: https://docs.landing.ai/ade/ade-extract-troubleshoot",
+    "fallback_model_version": null
+  }
+}
