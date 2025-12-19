@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, HTTPException
+from fastapi import FastAPI, UploadFile, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -9,6 +9,8 @@ from tempfile import NamedTemporaryFile
 from landingai_ade import LandingAIADE
 import traceback
 from pathlib import Path
+from database import supabase
+from schemas import *
 
 load_dotenv(override=True)
 
