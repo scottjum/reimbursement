@@ -1,3 +1,4 @@
+""" Database class """
 from __future__ import annotations
 
 import os
@@ -281,7 +282,7 @@ class Database:
             "middle_initial": self._clean_str(insured_src.get("MI")),
             "date_of_birth": self._clean_str(insured_src.get("dateOfBirth")),
             "identification_number": self._parse_int(insured_src.get("identificationNumber")),
-            "gender": self._clean_str(insured_src.get("Sex") or insured_src.get("sex")),
+            "gender": self._clean_str(insured_src.get("sex")),
             "address": self._clean_str(insured_src.get("address")),
             "city": self._clean_str(insured_src.get("city")),
             "state": self._clean_str(insured_src.get("state")),

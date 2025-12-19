@@ -1,3 +1,4 @@
+""" Schemas for the API """
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
@@ -91,7 +92,6 @@ class ExtractInsuredInformation(BaseModel):
     employerName: Optional[str] = None
     insurancePlanName: Optional[str] = None
     anotherInsurancePlan: Optional[bool] = None
-    Sex: Optional[str] = None
     sex: Optional[str] = None
     otherIdentificationNumber: Optional[str] = None
 
