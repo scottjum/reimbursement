@@ -1,18 +1,21 @@
+""" Main file for the FastAPI backend """
+import os
+import logging
+import traceback
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 from fastapi import FastAPI, UploadFile, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
-import os   # environment variables
-import logging
-from tempfile import NamedTemporaryFile
 from landingai_ade import LandingAIADE
-import traceback
-from pathlib import Path
-from database import supabase
-from schemas import *
+
+from database import Database
 
 load_dotenv(override=True)
+
+database = Database()
 
 # Configure logging
 logging.basicConfig(
@@ -36,6 +39,7 @@ app.add_middleware(
 )
 
 class UploadResponse(BaseModel):
+    """ Upload response """
     content: str
     filename: str
 
@@ -159,13 +163,69 @@ async def upload_file(file: UploadFile):
             except Exception as e:
                 logger.warning(f"Failed to delete temporary file {temp_file_path}: {str(e)}")
 
+@app.get("/database/patient_information")
+async def get_all_patient_information():
+    """ Get all patient information """
+    return database.get_all_patient_information()
+
+@app.get("/database/insured_information")
+async def get_all_insured_information():
+    """ Get all insured information """
+    return database.get_all_insured_information()
+
+@app.get("/database/other_insurance_information")
+async def get_all_other_insurance_information():
+    """ Get all other insurance information """
+    return database.get_all_other_insurance_information()
+
+@app.get("/database/attestation")
+async def get_all_attestation():
+    """ Get all attestation """
+    return database.get_all_attestation()
+
+@app.get("/database/patient_information/{patient_id}")
+async def get_patient_information(patient_id: int):
+    """ Get patient information by id """
+    return database.get_patient_information(patient_id)
+
+@app.get("/database/insured_information/{insured_id}")
+async def get_insured_information(insured_id: int):
+    """ Get insured information by id """
+    return database.get_insured_information(insured_id)
+
+@app.get("/database/other_insurance_information/{other_insurance_id}")
+async def get_other_insurance_information(other_insurance_id: int):
+    """ Get other insurance information by id """
+    return database.get_other_insurance_information(other_insurance_id)
+
+@app.get("/database/attestation/{attestation_id}")
+async def get_attestation(attestation_id: int):
+    """ Get attestation by id """
+    return database.get_attestation(attestation_id)
+
+@app.get("/database/patient_information/insured_id/{insured_id}")
+async def get_all_patient_information_by_insured_id(insured_id: int):
+    """ Get all patient information by insured id """
+    return database.get_all_patient_information_by_insured_id(insured_id)
+
+@app.get("/database/insured_information/patient_id/{patient_id}")
+async def get_all_insured_information_by_patient_id(patient_id: int):
+    """ Get all insured information by patient id """
+    return database.get_all_insured_information_by_patient_id(patient_id)
+
+@app.get("/database/other_insurance_information/insured_id/{insured_id}")
+async def get_all_other_insurance_information_by_insured_id(insured_id: int):
+    """ Get all other insurance information by insured id """
+    return database.get_all_other_insurance_information_by_insured_id(insured_id)
 
 @app.get("/")
-def read_root():
+async def read_root():
+    """ Read root """
     return {"message": "Hello, World!"}
 
 @app.get("/health")
 async def health_check():
+    """ Health check """
     return {"status": "healthy", "service": "FastAPI Backend"}
 
 if __name__ == "__main__":
