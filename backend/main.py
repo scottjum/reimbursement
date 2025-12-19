@@ -57,8 +57,8 @@ async def upload_file(file: UploadFile):
         logger.debug("=" * 50)
         
         # Debug: Check filename
-        logger.debug(f"Filename: {file.filename}")
-        logger.debug(f"Content type: {file.content_type}")
+        logger.debug("Filename: %s", file.filename)
+        logger.debug("Content type: %s", file.content_type)
         
         if not file.filename:
             logger.error("No filename provided in upload request")
@@ -67,7 +67,7 @@ async def upload_file(file: UploadFile):
         # Debug: Check API key
         api_key = os.getenv("VISION_AGENT_API_KEY")
         if api_key:
-            logger.debug(f"API key found: {api_key[:10]}... (length: {len(api_key)})")
+            logger.debug("API key found: %s... length: %s", api_key[:10], (len(api_key)))
         else:
             logger.error("VISION_AGENT_API_KEY environment variable not set")
             raise HTTPException(
@@ -79,7 +79,7 @@ async def upload_file(file: UploadFile):
         logger.debug("Reading file content...")
         file_content = await file.read()
         file_size = len(file_content)
-        logger.debug(f"File size: {file_size} bytes")
+        logger.debug("File size: %s bytes", file_size)
         
         if file_size == 0:
             logger.error("Uploaded file is empty")
@@ -90,7 +90,7 @@ async def upload_file(file: UploadFile):
         with NamedTemporaryFile(delete=False, suffix=Path(file.filename).suffix) as temp_file:
             temp_file.write(file_content)
             temp_file_path = temp_file.name
-            logger.debug(f"Temporary file created: {temp_file_path}")
+            logger.debug("Temporary file created: %s", temp_file_path)
 
         # Debug: Initialize client
         logger.debug("Initializing LandingAIADE client...")
@@ -98,38 +98,38 @@ async def upload_file(file: UploadFile):
             client = LandingAIADE(apikey=api_key)
             logger.debug("Client initialized successfully")
         except Exception as e:
-            logger.error(f"Failed to initialize LandingAIADE client: {str(e)}")
+            logger.error("Failed to initialize LandingAIADE client: %s", str(e))
             logger.error(traceback.format_exc())
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to initialize document parser: {str(e)}"
-            )
+            ) from e
         
         # Debug: Parse document
-        logger.debug(f"Parsing document from path: {temp_file_path}")
+        logger.debug("Parsing document from path: %s", temp_file_path)
         try:
             response = client.parse(document=Path(temp_file_path))
             logger.debug("Document parsed successfully")
-            logger.debug(f"Response type: {type(response)}")
-            logger.debug(f"Response has markdown attribute: {hasattr(response, 'markdown')}")
+            logger.debug("Response type: %s", type(response))
+            logger.debug("Response has markdown attribute: %s", hasattr(response, 'markdown'))
             
             if not hasattr(response, 'markdown'):
-                logger.error(f"Response object missing 'markdown' attribute. Available attributes: {dir(response)}")
+                logger.error("Response object missing 'markdown' attribute. Available attributes: %s", dir(response))
                 raise HTTPException(
                     status_code=500,
                     detail="Parser response missing expected 'markdown' attribute"
                 )
             
             markdown_content = response.markdown
-            logger.debug(f"Markdown content length: {len(markdown_content) if markdown_content else 0}")
+            logger.debug("Markdown content length: %s", len(markdown_content) if markdown_content else 0)
             
         except Exception as e:
-            logger.error(f"Failed to parse document: {str(e)}")
+            logger.error("Failed to parse document: %s", str(e))
             logger.error(traceback.format_exc())
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to parse document: {str(e)}"
-            )
+            ) from e
         
         # Debug: Prepare response
         logger.debug("Preparing response...")
@@ -137,7 +137,7 @@ async def upload_file(file: UploadFile):
         # Store the document content in memory for later use in chat requests
         # Using 'default' as the key - in production, you might want to use session IDs
         uploaded_documents['default'] = markdown_content
-        logger.debug(f"Stored document content in memory (length: {len(markdown_content) if markdown_content else 0})")
+        logger.debug("Stored document content in memory (length: %s)", len(markdown_content) if markdown_content else 0)
         
         result = UploadResponse(content=markdown_content, filename=file.filename)
         logger.debug("Upload route completed successfully")
@@ -148,20 +148,20 @@ async def upload_file(file: UploadFile):
         raise
     except Exception as e:
         # Catch any unexpected errors
-        logger.error(f"Unexpected error in upload route: {str(e)}")
+        logger.error("Unexpected error in upload route: %s", str(e))
         logger.error(traceback.format_exc())
         raise HTTPException(
             status_code=500,
             detail=f"Unexpected error: {str(e)}. Check server logs for details."
-        )
+        ) from e
     finally:
         # Clean up temporary file
         if temp_file_path and os.path.exists(temp_file_path):
             try:
                 os.unlink(temp_file_path)
-                logger.debug(f"Cleaned up temporary file: {temp_file_path}")
-            except Exception as e:
-                logger.warning(f"Failed to delete temporary file {temp_file_path}: {str(e)}")
+                logger.debug("Cleaned up temporary file: %s", temp_file_path)
+            except OSError as e:
+                logger.warning("Failed to delete temporary file %s: %s", temp_file_path, str(e))
 
 @app.get("/database/patient_information")
 async def get_all_patient_information():
