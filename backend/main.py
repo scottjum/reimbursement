@@ -1,5 +1,6 @@
 """ Main file for the FastAPI backend """
 import os
+from io import BytesIO
 import logging
 import traceback
 from pathlib import Path
@@ -10,12 +11,13 @@ from typing import Optional
 
 from fastapi import FastAPI, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from landingai_ade import LandingAIADE
-
-from database import Database
-from schemas import ExtractResultsFile, MigrationResult
+from landingai_ade.lib import pydantic_to_json_schema
+from database import (Database, InsuredInformationBase, 
+PatientInformationBase, OtherInsuranceInformationBase, AttestationBase
+)
 
 load_dotenv(override=True)
 
@@ -42,19 +44,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class UploadResponse(BaseModel):
-    """Upload response.
-
-    - For document uploads (pdf/docx/txt): `content` contains parsed markdown.
-    - For extract-results JSON uploads: `migration_result` contains inserted row IDs.
-    """
-
-    filename: str
-    content: Optional[str] = None
-    migration_result: Optional[MigrationResult] = None
-
-@app.post("/upload", response_model=UploadResponse)
-async def upload_file(file: UploadFile, dry_run: bool = False):
+@app.post("/upload")
+async def upload_file(file: UploadFile):
     """
     Upload and process a document file.
     Supports PDF, DOCX, and TXT files.
@@ -82,28 +73,6 @@ async def upload_file(file: UploadFile, dry_run: bool = False):
         if file_size == 0:
             logger.error("Uploaded file is empty")
             raise HTTPException(status_code=400, detail="Uploaded file is empty")
-        
-
-        # If this is an extract-results JSON payload, migrate it into Supabase.
-        # This effectively "calls" the /database/migrate_extract behavior without doing an internal HTTP request.
-        suffix = Path(file.filename).suffix.lower()
-        if suffix == ".json" or (file.content_type and "json" in file.content_type.lower()):
-            try:
-                raw = json.loads(file_content.decode("utf-8"))
-            except Exception as e:
-                raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}") from e
-
-            try:
-                payload = ExtractResultsFile.model_validate(raw)
-            except Exception as e:
-                raise HTTPException(status_code=400, detail=f"Invalid extract-results payload: {str(e)}") from e
-
-            migration = database.migrate_extract_results(payload, dry_run=dry_run)
-            return UploadResponse(
-                filename=file.filename,
-                content=None,
-                migration_result=migration,
-            )
 
         with NamedTemporaryFile(delete=False, suffix=Path(file.filename).suffix) as temp_file:
             temp_file.write(file_content)
@@ -120,19 +89,38 @@ async def upload_file(file: UploadFile, dry_run: bool = False):
             ) from e
         
         try:
-            response = client.parse(document=Path(temp_file_path))
+            parse_response = client.parse(document=Path(temp_file_path))
             
-            if not hasattr(response, 'markdown'):
-                logger.error("Response object missing 'markdown' attribute. Available attributes: %s", dir(response))
+            if not hasattr(parse_response, 'markdown'):
+                logger.error("Response object missing 'markdown' attribute. Available attributes: %s", dir(parse_response))
                 raise HTTPException(
                     status_code=500,
                     detail="Parser response missing expected 'markdown' attribute"
                 )
             
-            markdown_content = response.markdown
-            
-            # extract_response = client.extract(schema=schema, markdown=BytesIO(parse_response.markdown.encode('utf-8')))
-            # TODO: Add extract response to the database
+            markdown_content = parse_response.markdown
+            # Store the document content in memory for later use in chat requests
+            # Using 'default' as the key - in production, you might want to use session IDs
+            uploaded_documents['default'] = markdown_content
+
+            # Build a single extraction schema that includes ALL sections we want LandingAI to extract.
+            # This mirrors the pattern in `backend/extract.py` (a top-level model with nested sections).
+            class ClaimFormExtractionSchema(BaseModel):
+                """ Claim Form Extraction Schema """
+                insuredInformation: InsuredInformationBase = Field(..., description="The insured information.")
+                patientInformation: PatientInformationBase = Field(..., description="The patient information.")
+                otherInsuranceInformation: Optional[OtherInsuranceInformationBase] = Field(..., description="The other insurance information.")
+                attestation: AttestationBase = Field(..., description="The attestation.")
+
+            schema = pydantic_to_json_schema(ClaimFormExtractionSchema)
+            extract_response = client.extract(schema=schema, markdown=BytesIO(markdown_content.encode('utf-8')))
+
+            # Add extract response to the database
+            database.create_insured_information(extract_response.insuredInformation)
+            database.create_patient_information(extract_response.patientInformation)
+            database.create_other_insurance_information(extract_response.otherInsuranceInformation)
+            database.create_attestation(extract_response.attestation)
+
 
         except Exception as e:
             logger.error("Failed to parse document: %s", str(e))
@@ -141,13 +129,8 @@ async def upload_file(file: UploadFile, dry_run: bool = False):
                 status_code=500,
                 detail=f"Failed to parse document: {str(e)}"
             ) from e
-        
-        # Store the document content in memory for later use in chat requests
-        # Using 'default' as the key - in production, you might want to use session IDs
-        uploaded_documents['default'] = markdown_content
 
-        result = UploadResponse(content=markdown_content, filename=file.filename, migration_result=None)
-        return result
+        return {"message": "Document uploaded successfully"}
 
     except HTTPException:
         # Re-raise HTTP exceptions as-is
@@ -223,18 +206,6 @@ async def get_all_other_insurance_information_by_insured_id(insured_id: int):
     """ Get all other insurance information by insured id """
     return database.get_all_other_insurance_information_by_insured_id(insured_id)
 
-@app.post("/database/migrate_extract", response_model=MigrationResult)
-async def migrate_extract_results(payload: ExtractResultsFile, dry_run: bool = False):
-    """
-    Insert a LandingAI extract-results.json payload into Supabase.
-
-    - Pass the full JSON as request body.
-    - Use `dry_run=true` to preview normalized payloads without writing.
-    """
-    return database.migrate_extract_results(payload, dry_run=dry_run)
-
-@app.post("/database/migrate_extract_file", response_model=MigrationResult)
-async def migrate_extract_results_file(file: UploadFile, dry_run: bool = False):
     """
     Same as /database/migrate_extract but accepts a JSON file upload.
     """

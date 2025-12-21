@@ -3,22 +3,78 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 
 from dotenv import load_dotenv
 from supabase import Client, create_client
+from sqlmodel import Field, SQLModel
 
-from schemas import (
-    AttestationBase,
-    ExtractPayload,
-    ExtractResultsFile,
-    InsuredInformationBase,
-    MigrationResult,
-    OtherInsuranceInformationBase,
-    PatientInformationBase,
-)
 
 load_dotenv(override=True)
+
+class PatientInformationBase(SQLModel, table=True):
+    """ Patient Information """
+    id: Optional[int] = Field(default=None, primary_key=True, description="The patient's id.")
+    insured_id: Optional[int] = Field(default=None, foreign_key="insured_information.id")
+    patient_last_name: str = Field(..., description="The patient's last name.")
+    patient_first_name: str = Field(..., description="The patient's first name.")
+    patient_middle_initial: Optional[str] = Field(default=None, description="The patient's middle initial.")
+    patient_date_of_birth: str = Field(..., description="The patient's date of birth.")
+    patient_gender: str = Field(..., description="The patient's gender.")
+    patient_address: str = Field(..., description="The patient's address.")
+    patient_city: str = Field(..., description="The patient's city.")
+    patient_state: str = Field(..., description="The patient's state.")
+    patient_zip: str = Field(..., description="The patient's zip code.")
+    patient_phone: str = Field(..., description="The patient's phone number.")
+    status: Optional[str] = Field(default=None, description="The patient's status.")
+    relationship_to_insured: str = Field(..., description="The patient's relationship to the insured.")
+    condition_related_to_employment: Optional[str] = Field(default=None, description="The patient's condition related to employment.")
+    condition_related_to_auto_accident: Optional[str] = Field(default=None, description="The patient's condition related to auto accident.")
+    date_of_current_illness: str = Field(..., description="The patient's date of current illness.")
+    condition_related_to_other: Optional[str] = Field(default=None, description="The patient's condition related to other.")
+    auto_accident_place: Optional[str] = Field(default=None, description="The patient's auto accident place.")
+    
+
+class InsuredInformationBase(SQLModel, table=True):
+    """ Insured Information """
+    id: Optional[int] = Field(default=None, primary_key=True, description="The insured's id.")
+    last_name: str = Field(..., description="The insured's last name.")
+    first_name: str = Field(..., description="The insured's first name.")
+    middle_initial: Optional[str] = Field(default=None, description="The insured's middle initial.")
+    date_of_birth: str = Field(..., description="The insured's date of birth.")
+    identification_number: int = Field(..., description="The insured's identification number.")
+    gender: str = Field(..., description="The insured's gender.")
+    address: str = Field(..., description="The insured's address.")
+    city: str = Field(..., description="The insured's city.")
+    state: str = Field(..., description="The insured's state.")
+    zip: str = Field(..., description="The insured's zip code.")
+    phone: str = Field(..., description="The insured's phone number.")
+    employer_name: Optional[str] = Field(default=None, description="The insured's employer name.")
+    insurance_plan_name: str = Field(..., description="The insured's insurance plan name.")
+    another_insurance_plan: bool = Field(default=False, description="The insured's another insurance plan.")
+    other_identification_number: Optional[int] = Field(default=None, description="The insured's other identification number.")
+
+class OtherInsuranceInformationBase(SQLModel, table=True):
+    """ Other Insurance Information """
+    id: Optional[int] = Field(default=None, primary_key=True, description="The other insurance information's id.")
+    policy_holder_insurance_last_name: str = Field(..., description="The other insurance information's policy holder insurance last name.")
+    policy_holder_insurance_first_name: str = Field(..., description="The other insurance information's policy holder insurance first name.")
+    policy_holder_insurance_middle_initial: Optional[str] = Field(default=None, description="The other insurance information's policy holder insurance middle initial.")
+    policy_holder_insurance_date_of_birth: str = Field(..., description="The other insurance information's policy holder insurance date of birth.")
+    policy_holder_identification_number: int = Field(..., description="The other insurance information's policy holder insurance identification number.")
+    policy_holder_insurance_plan_name: str = Field(..., description="The other insurance information's policy holder insurance plan name.")
+    policy_holder_insurance_gender: str = Field(..., description="The other insurance information's policy holder insurance gender.")
+    policy_holder_telephone_number: str = Field(..., description="The other insurance information's policy holder insurance telephone number.")
+    policy_holder_employer_name: Optional[str] = Field(default=None, description="The other insurance information's policy holder insurance employer name.")
+
+class AttestationBase(SQLModel, table=True):
+    """ Attestation """
+    id: Optional[int] = Field(default=None, primary_key=True, description="The attestation's id.")
+    date_patient: str = Field(..., description="The attestation's date of patient.")
+    provider_name: str = Field(..., description="The attestation's provider name.")
+    tax_number: int = Field(..., description="The attestation's tax number.")
+    NPI_number: int = Field(..., description="The attestation's NPI number.")
+    date_of_insured: str = Field(..., description="The attestation's date of insured.")
 
 url: str = os.getenv("SUPABASE_URL")
 key: str = os.getenv("SUPABASE_KEY")
@@ -120,6 +176,8 @@ class Database:
         """Create a new attestation."""
         return self.supabase.from_("Attestation").insert(attestation.model_dump()).execute()
 
+    # SELECT Statements
+
     def get_patient_information(self, patient_id: int):
         """Get a patient information by id."""
         return self.supabase.from_("Patient_Information").select("*").eq("id", patient_id).execute()
@@ -135,39 +193,7 @@ class Database:
     def get_attestation(self, attestation_id: int):
         """Get an attestation by id."""
         return self.supabase.from_("Attestation").select("*").eq("id", attestation_id).execute()
-
-    def update_patient_information(self, patient_id: int, patient_information: PatientInformationBase):
-        """Update a patient information."""
-        return self.supabase.from_("Patient_Information").update(patient_information.model_dump()).eq("id", patient_id).execute()
-
-    def update_insured_information(self, insured_id: int, insured_information: InsuredInformationBase):
-        """Update an insured information."""
-        return self.supabase.from_("Insured_Information").update(insured_information.model_dump()).eq("id", insured_id).execute()
     
-    def update_other_insurance_information(self, other_insurance_id: int, other_insurance_information: OtherInsuranceInformationBase):
-        """Update other insurance information."""
-        return self.supabase.from_("Other_Insurance_Information").update(other_insurance_information.model_dump()).eq("id", other_insurance_id).execute()
-
-    def update_attestation(self, attestation_id: int, attestation: AttestationBase):
-        """Update an attestation."""
-        return self.supabase.from_("Attestation").update(attestation.model_dump()).eq("id", attestation_id).execute()
-    
-    def delete_patient_information(self, patient_id: int):
-        """Delete a patient information."""
-        return self.supabase.from_("Patient_Information").delete().eq("id", patient_id).execute()
-
-    def delete_insured_information(self, insured_id: int):
-        """ Delete an insured information """
-        return self.supabase.from_("Insured_Information").delete().eq("id", insured_id).execute()
-
-    def delete_other_insurance_information(self, other_insurance_id: int):
-        """ Delete other insurance information """
-        return self.supabase.from_("Other_Insurance_Information").delete().eq("id", other_insurance_id).execute()
-
-    def delete_attestation(self, attestation_id: int):
-        """ Delete an attestation """
-        return self.supabase.from_("Attestation").delete().eq("id", attestation_id).execute()
-
     def get_all_patient_information(self):
         """ Get all patient information """
         return self.supabase.from_("Patient_Information").select("*").execute()
@@ -237,147 +263,40 @@ class Database:
         """ Get all attestation by date of insured """
         return self.supabase.from_("Attestation").select("*").eq("date_of_insured", date_of_insured).execute()
 
-    # ----------------------------
-    # Extract-results migration
-    # ----------------------------
+    # UPDATE Statements
 
-    def migrate_extract_results(
-        self,
-        extract_results: Union[ExtractResultsFile, Dict[str, Any]],
-        *,
-        dry_run: bool = False,
-    ) -> MigrationResult:
-        """
-        Migrate a LandingAI extract-results.json payload into Supabase.
+    def update_patient_information(self, patient_id: int, patient_information: PatientInformationBase):
+        """Update a patient information."""
+        return self.supabase.from_("Patient_Information").update(patient_information.model_dump()).eq("id", patient_id).execute()
 
-        Accepts either:
-        - a parsed `ExtractResultsFile`
-        - a raw dict that matches the file shape
-        """
-        model = extract_results if isinstance(extract_results, ExtractResultsFile) else ExtractResultsFile.model_validate(extract_results)
-        extraction = model.extraction or ExtractPayload()
-        return self.migrate_extraction(extraction, dry_run=dry_run)
+    def update_insured_information(self, insured_id: int, insured_information: InsuredInformationBase):
+        """Update an insured information."""
+        return self.supabase.from_("Insured_Information").update(insured_information.model_dump()).eq("id", insured_id).execute()
+    
+    def update_other_insurance_information(self, other_insurance_id: int, other_insurance_information: OtherInsuranceInformationBase):
+        """Update other insurance information."""
+        return self.supabase.from_("Other_Insurance_Information").update(other_insurance_information.model_dump()).eq("id", other_insurance_id).execute()
 
-    def migrate_extraction(
-        self,
-        extraction: Union[ExtractPayload, Dict[str, Any]],
-        *,
-        dry_run: bool = False,
-    ) -> MigrationResult:
-        """
-        Migrate the nested `extraction` object (insured/patient/otherInsurance/attestation) into Supabase.
-        """
-        ex = extraction if isinstance(extraction, ExtractPayload) else ExtractPayload.model_validate(extraction)
+    def update_attestation(self, attestation_id: int, attestation: AttestationBase):
+        """Update an attestation."""
+        return self.supabase.from_("Attestation").update(attestation.model_dump()).eq("id", attestation_id).execute()
 
-        insured_src = (ex.insuredInformation.model_dump() if ex.insuredInformation else {})
-        patient_src = (ex.patientInformation.model_dump() if ex.patientInformation else {})
-        other_src = (ex.otherInsuranceInformation.model_dump() if ex.otherInsuranceInformation else {})
-        attest_src = (ex.attestation.model_dump() if ex.attestation else {})
+    # DELETE Statements
+    
+    def delete_patient_information(self, patient_id: int):
+        """Delete a patient information."""
+        return self.supabase.from_("Patient_Information").delete().eq("id", patient_id).execute()
 
-        payloads: Dict[str, Any] = {}
+    def delete_insured_information(self, insured_id: int):
+        """ Delete an insured information """
+        return self.supabase.from_("Insured_Information").delete().eq("id", insured_id).execute()
 
-        insured_payload: Dict[str, Any] = {
-            "last_name": self._clean_str(insured_src.get("lastName")),
-            "first_name": self._clean_str(insured_src.get("firstName")),
-            "middle_initial": self._clean_str(insured_src.get("MI")),
-            "date_of_birth": self._clean_str(insured_src.get("dateOfBirth")),
-            "identification_number": self._parse_int(insured_src.get("identificationNumber")),
-            "gender": self._clean_str(insured_src.get("sex")),
-            "address": self._clean_str(insured_src.get("address")),
-            "city": self._clean_str(insured_src.get("city")),
-            "state": self._clean_str(insured_src.get("state")),
-            "zip": self._clean_str(insured_src.get("zip")),
-            "phone": self._clean_str(insured_src.get("telephone")),
-            "employer_name": self._clean_str(insured_src.get("employerName")),
-            "insurance_plan_name": self._clean_str(insured_src.get("insurancePlanName")),
-            "another_insurance_plan": insured_src.get("anotherInsurancePlan"),
-            "other_identification_number": self._parse_int(insured_src.get("otherIdentificationNumber")),
-        }
-        insured_id, insured_used = self._insert_with_unknown_column_retry(
-            "Insured_Information", insured_payload, dry_run=dry_run
-        )
-        payloads["Insured_Information"] = insured_used
+    def delete_other_insurance_information(self, other_insurance_id: int):
+        """ Delete other insurance information """
+        return self.supabase.from_("Other_Insurance_Information").delete().eq("id", other_insurance_id).execute()
 
-        relationship = self._clean_str(patient_src.get("relationshipToInsured"))
-        patient_is_insured = (relationship or "").lower() == "self"
+    def delete_attestation(self, attestation_id: int):
+        """ Delete an attestation """
+        return self.supabase.from_("Attestation").delete().eq("id", attestation_id).execute()
 
-        def _p(field: str) -> Optional[str]:
-            return self._clean_str(patient_src.get(field))
-
-        patient_payload: Dict[str, Any] = {
-            "insured_id": insured_id,
-            "patient_last_name": _p("patientLastName")
-            or (self._clean_str(insured_src.get("lastName")) if patient_is_insured else None),
-            "patient_first_name": _p("patientFirstName")
-            or (self._clean_str(insured_src.get("firstName")) if patient_is_insured else None),
-            "patient_middle_initial": _p("patientMI")
-            or (self._clean_str(insured_src.get("MI")) if patient_is_insured else None),
-            "patient_date_of_birth": _p("patientDateOfBirth")
-            or (self._clean_str(insured_src.get("dateOfBirth")) if patient_is_insured else None),
-            "patient_gender": _p("patientSex")
-            or (self._clean_str(insured_src.get("Sex") or insured_src.get("sex")) if patient_is_insured else None),
-            "patient_address": _p("patientAddress")
-            or (self._clean_str(insured_src.get("address")) if patient_is_insured else None),
-            "patient_city": _p("patientCity")
-            or (self._clean_str(insured_src.get("city")) if patient_is_insured else None),
-            "patient_state": _p("patientState")
-            or (self._clean_str(insured_src.get("state")) if patient_is_insured else None),
-            "patient_zip": _p("patientZip")
-            or (self._clean_str(insured_src.get("zip")) if patient_is_insured else None),
-            "patient_phone": _p("patientTelephone")
-            or (self._clean_str(insured_src.get("telephone")) if patient_is_insured else None),
-            "status": self._clean_str(patient_src.get("status")),
-            "relationship_to_insured": relationship,
-            "condition_related_to_employment": self._clean_str(patient_src.get("conditionRelatedToEmployment")),
-            "condition_related_to_auto_accident": self._clean_str(patient_src.get("conditionRelatedToAutoAccident")),
-            "date_of_current_illness": self._clean_str(patient_src.get("dateOfCurrentIllness")),
-            "condition_related_to_other": self._clean_str(patient_src.get("conditionRelatedToOther")),
-            "auto_accident_place": self._clean_str(patient_src.get("autoAccidentPlace")),
-        }
-        patient_id, patient_used = self._insert_with_unknown_column_retry(
-            "Patient_Information", patient_payload, dry_run=dry_run
-        )
-        payloads["Patient_Information"] = patient_used
-
-        other_insurance_id: Optional[int] = None
-        if not self._is_effectively_empty(other_src):
-            other_payload: Dict[str, Any] = {
-                "insured_id": insured_id,
-                "policy_holder_insurance_last_name": self._clean_str(other_src.get("policyHolderLastName")),
-                "policy_holder_insurance_first_name": self._clean_str(other_src.get("policyHolderFirstName")),
-                "policy_holder_insurance_middle_initial": self._clean_str(other_src.get("policyHolderMI")),
-                "policy_holder_insurance_date_of_birth": self._clean_str(other_src.get("dateOfBirth")),
-                "policy_holder_identification_number": self._parse_int(other_src.get("identificationNumber")),
-                "policy_holder_insurance_plan_name": self._clean_str(other_src.get("insurancePlanName")),
-                "policy_holder_insurance_gender": self._clean_str(other_src.get("policyHolderSex")),
-                "policy_holder_telephone_number": self._clean_str(other_src.get("policyHolderTelephone")),
-                "policy_holder_employer_name": self._clean_str(other_src.get("policyHolderEmployerName")),
-            }
-            other_insurance_id, other_used = self._insert_with_unknown_column_retry(
-                "Other_Insurance_Information", other_payload, dry_run=dry_run
-            )
-            payloads["Other_Insurance_Information"] = other_used
-
-        attestation_payload: Dict[str, Any] = {
-            "insured_id": insured_id,
-            "patient_id": patient_id,
-            "date_patient": self._clean_str(attest_src.get("dateOfPatient")),
-            "provider_name": self._clean_str(attest_src.get("providerName")),
-            "tax_number": self._parse_int(attest_src.get("taxNumber")),
-            "NPI_number": self._parse_int(attest_src.get("NPINumber")),
-            "date_of_insured": self._clean_str(attest_src.get("dateOfInsured")),
-        }
-        attestation_id, attestation_used = self._insert_with_unknown_column_retry(
-            "Attestation", attestation_payload, dry_run=dry_run
-        )
-        payloads["Attestation"] = attestation_used
-
-        return MigrationResult(
-            insured_id=insured_id,
-            patient_id=patient_id,
-            other_insurance_id=other_insurance_id,
-            attestation_id=attestation_id,
-            dry_run=dry_run,
-            payloads=payloads if dry_run else None,
-        )
-
+    
