@@ -6,6 +6,8 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 import json
 
+from typing import Optional
+
 from fastapi import FastAPI, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -41,27 +43,24 @@ app.add_middleware(
 )
 
 class UploadResponse(BaseModel):
-    """ Upload response """
-    content: str
+    """Upload response.
+
+    - For document uploads (pdf/docx/txt): `content` contains parsed markdown.
+    - For extract-results JSON uploads: `migration_result` contains inserted row IDs.
+    """
+
     filename: str
+    content: Optional[str] = None
+    migration_result: Optional[MigrationResult] = None
 
 @app.post("/upload", response_model=UploadResponse)
-async def upload_file(file: UploadFile):
+async def upload_file(file: UploadFile, dry_run: bool = False):
     """
     Upload and process a document file.
     Supports PDF, DOCX, and TXT files.
     """
     temp_file_path = None
     try:
-        # Debug: Log incoming request
-        logger.debug("=" * 50)
-        logger.debug("UPLOAD ROUTE CALLED")
-        logger.debug("=" * 50)
-        
-        # Debug: Check filename
-        logger.debug("Filename: %s", file.filename)
-        logger.debug("Content type: %s", file.content_type)
-        
         if not file.filename:
             logger.error("No filename provided in upload request")
             raise HTTPException(status_code=400, detail="No filename provided")
@@ -76,29 +75,42 @@ async def upload_file(file: UploadFile):
                 status_code=500, 
                 detail="VISION_AGENT_API_KEY environment variable not configured"
             )
-        
-        # Debug: Read file content
-        logger.debug("Reading file content...")
+    
         file_content = await file.read()
         file_size = len(file_content)
-        logger.debug("File size: %s bytes", file_size)
         
         if file_size == 0:
             logger.error("Uploaded file is empty")
             raise HTTPException(status_code=400, detail="Uploaded file is empty")
         
-        # Debug: Save to temporary file
-        logger.debug("Saving file to temporary location...")
+
+        # If this is an extract-results JSON payload, migrate it into Supabase.
+        # This effectively "calls" the /database/migrate_extract behavior without doing an internal HTTP request.
+        suffix = Path(file.filename).suffix.lower()
+        if suffix == ".json" or (file.content_type and "json" in file.content_type.lower()):
+            try:
+                raw = json.loads(file_content.decode("utf-8"))
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}") from e
+
+            try:
+                payload = ExtractResultsFile.model_validate(raw)
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Invalid extract-results payload: {str(e)}") from e
+
+            migration = database.migrate_extract_results(payload, dry_run=dry_run)
+            return UploadResponse(
+                filename=file.filename,
+                content=None,
+                migration_result=migration,
+            )
+
         with NamedTemporaryFile(delete=False, suffix=Path(file.filename).suffix) as temp_file:
             temp_file.write(file_content)
             temp_file_path = temp_file.name
-            logger.debug("Temporary file created: %s", temp_file_path)
 
-        # Debug: Initialize client
-        logger.debug("Initializing LandingAIADE client...")
         try:
             client = LandingAIADE(apikey=api_key)
-            logger.debug("Client initialized successfully")
         except Exception as e:
             logger.error("Failed to initialize LandingAIADE client: %s", str(e))
             logger.error(traceback.format_exc())
@@ -107,13 +119,8 @@ async def upload_file(file: UploadFile):
                 detail=f"Failed to initialize document parser: {str(e)}"
             ) from e
         
-        # Debug: Parse document
-        logger.debug("Parsing document from path: %s", temp_file_path)
         try:
             response = client.parse(document=Path(temp_file_path))
-            logger.debug("Document parsed successfully")
-            logger.debug("Response type: %s", type(response))
-            logger.debug("Response has markdown attribute: %s", hasattr(response, 'markdown'))
             
             if not hasattr(response, 'markdown'):
                 logger.error("Response object missing 'markdown' attribute. Available attributes: %s", dir(response))
@@ -123,8 +130,10 @@ async def upload_file(file: UploadFile):
                 )
             
             markdown_content = response.markdown
-            logger.debug("Markdown content length: %s", len(markdown_content) if markdown_content else 0)
             
+            # extract_response = client.extract(schema=schema, markdown=BytesIO(parse_response.markdown.encode('utf-8')))
+            # TODO: Add extract response to the database
+
         except Exception as e:
             logger.error("Failed to parse document: %s", str(e))
             logger.error(traceback.format_exc())
@@ -133,16 +142,11 @@ async def upload_file(file: UploadFile):
                 detail=f"Failed to parse document: {str(e)}"
             ) from e
         
-        # Debug: Prepare response
-        logger.debug("Preparing response...")
-        
         # Store the document content in memory for later use in chat requests
         # Using 'default' as the key - in production, you might want to use session IDs
         uploaded_documents['default'] = markdown_content
-        logger.debug("Stored document content in memory (length: %s)", len(markdown_content) if markdown_content else 0)
-        
-        result = UploadResponse(content=markdown_content, filename=file.filename)
-        logger.debug("Upload route completed successfully")
+
+        result = UploadResponse(content=markdown_content, filename=file.filename, migration_result=None)
         return result
 
     except HTTPException:
@@ -161,7 +165,6 @@ async def upload_file(file: UploadFile):
         if temp_file_path and os.path.exists(temp_file_path):
             try:
                 os.unlink(temp_file_path)
-                logger.debug("Cleaned up temporary file: %s", temp_file_path)
             except OSError as e:
                 logger.warning("Failed to delete temporary file %s: %s", temp_file_path, str(e))
 
