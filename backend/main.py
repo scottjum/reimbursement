@@ -131,7 +131,7 @@ async def upload_file(file: UploadFile):
             response_insured = database.create_insured_information(extract_response.extraction["insuredInformation"], other_insurance_id)
             response_att = database.create_attestation(extract_response.extraction["attestation"])
 
-            database.create_patient_information(extract_response.extraction["patientInformation"], response_insured.data[0]["id"], other_insurance_id, response_att.data[0]["id"])
+            database.create_patient_information(extract_response.extraction["patientInformation"], response_insured.data[0]["id"], response_att.data[0]["id"])
 
             
         except Exception as e:

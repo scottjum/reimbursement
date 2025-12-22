@@ -49,6 +49,7 @@ class PatientInformationBase(SQLModel):
     date_of_current_illness: str = Field(..., description="The patient's date of current illness.")
     condition_related_to_other: Optional[str] = Field(default=None, description="The patient's condition related to other.")
     auto_accident_place: Optional[str] = Field(default=None, description="The patient's auto accident place.")
+    attestation_id: Optional[int] = Field(default=None, description="Foreign key reference to the attestation record.")
 
 class OtherInsuranceInformationBase(SQLModel):
     """ Other Insurance Information """
@@ -64,7 +65,7 @@ class OtherInsuranceInformationBase(SQLModel):
 
 class AttestationBase(SQLModel):
     """ Attestation """
-    date_patient_signed: str = Field(..., description="The attestation's date of patient signed.")
+    date_of_patient_signed: str = Field(..., description="The attestation's date of patient signed.")
     provider_name: str = Field(..., description="The attestation's provider name.")
     tax_number: int = Field(..., description="The attestation's tax number.")
     npi_number: int = Field(..., description="The attestation's NPI number.")
@@ -91,14 +92,6 @@ class Database:
         return obj
     
      # INSERT Statements
-    def create_insured_information(self, insured_information: InsuredInformationBase, other_insurance_id: Optional[int] = None):
-        """Create a new insured information."""
-        return self.supabase.from_("Insured_Information").insert(self._to_insert_payload(insured_information), other_insurance_id).execute()
-
-    def create_patient_information(self, patient_information: PatientInformationBase, insured_id: int, other_insurance_id: int, attestation_id: int):
-        """Create a new patient information."""
-        return self.supabase.from_("Patient_Information").insert(self._to_insert_payload(patient_information), insured_id, other_insurance_id, attestation_id).execute()
-
     def create_other_insurance_information(self, other_insurance_information: OtherInsuranceInformationBase):
         """Create a new other insurance information."""
         return self.supabase.from_("Other_Insurance_Information").insert(self._to_insert_payload(other_insurance_information)).execute()
@@ -106,6 +99,17 @@ class Database:
     def create_attestation(self, attestation: AttestationBase):
         """Create a new attestation."""
         return self.supabase.from_("Attestation").insert(self._to_insert_payload(attestation)).execute()
+
+    def create_insured_information(self, insured_information: InsuredInformationBase, other_insurance_id: Optional[int] = None):
+        """Create a new insured information."""
+        insured_information["other_identification_number"] = other_insurance_id
+        return self.supabase.from_("Insured_Information").insert(self._to_insert_payload(insured_information)).execute()
+
+    def create_patient_information(self, patient_information: PatientInformationBase, insured_id: int, attestation_id: int):
+        """Create a new patient information."""
+        patient_information["insured_id"] = insured_id
+        patient_information["attestation_id"] = attestation_id
+        return self.supabase.from_("Patient_Information").insert(self._to_insert_payload(patient_information)).execute()
 
     # SELECT Statements
 
