@@ -108,7 +108,6 @@ async def upload_file(file: UploadFile):
                 f.write(markdown_content)
 
             # Build a single extraction schema that includes ALL sections we want LandingAI to extract.
-            # This mirrors the pattern in `backend/extract.py` (a top-level model with nested sections).
             class ClaimFormExtractionSchema(BaseModel):
                 """ Claim Form Extraction Schema """
                 insuredInformation: InsuredInformationBase = Field(..., description="The insured information.")
@@ -162,6 +161,22 @@ async def upload_file(file: UploadFile):
                 os.unlink(temp_file_path)
             except OSError as e:
                 logger.warning("Failed to delete temporary file %s: %s", temp_file_path, str(e))
+
+@app.post("/insert_extract")
+async def insert_extract():
+    """ Insert extract """
+    with open("extracts/extract_response.json", "r", encoding="utf-8") as f:
+        extract_response = json.load(f)
+    
+    response_other = None
+    other_insurance_id = None
+    if "otherInsuranceInformation" in extract_response.extraction:
+        response_other = database.create_other_insurance_information(extract_response.extraction["otherInsuranceInformation"])
+        other_insurance_id = response_other.data[0]["id"]
+    response_insured = database.create_insured_information(extract_response.extraction["insuredInformation"], other_insurance_id)
+    response_att = database.create_attestation(extract_response.extraction["attestation"])
+    database.create_patient_information(extract_response.extraction["patientInformation"], response_insured.data[0]["id"], response_att.data[0]["id"])
+    return {"message": "Extract inserted successfully"}
 
 @app.get("/database/patient_information")
 async def get_all_patient_information():
