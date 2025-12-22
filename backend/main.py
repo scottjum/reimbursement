@@ -55,7 +55,7 @@ async def upload_file(file: UploadFile):
         if not file.filename:
             logger.error("No filename provided in upload request")
             raise HTTPException(status_code=400, detail="No filename provided")
-        
+       
         # Debug: Check API key
         api_key = os.getenv("VISION_AGENT_API_KEY")
         if api_key:
@@ -63,13 +63,13 @@ async def upload_file(file: UploadFile):
         else:
             logger.error("VISION_AGENT_API_KEY environment variable not set")
             raise HTTPException(
-                status_code=500, 
+                status_code=500,
                 detail="VISION_AGENT_API_KEY environment variable not configured"
             )
-    
+   
         file_content = await file.read()
         file_size = len(file_content)
-        
+       
         if file_size == 0:
             logger.error("Uploaded file is empty")
             raise HTTPException(status_code=400, detail="Uploaded file is empty")
@@ -103,6 +103,10 @@ async def upload_file(file: UploadFile):
             # Using 'default' as the key - in production, you might want to use session IDs
             uploaded_documents['default'] = markdown_content
 
+            # Save markdown output (useful if you plan to run extract on the markdown)
+            with open("extracts/output.md", "w", encoding="utf-8") as f:
+                f.write(markdown_content)
+
             # Build a single extraction schema that includes ALL sections we want LandingAI to extract.
             # This mirrors the pattern in `backend/extract.py` (a top-level model with nested sections).
             class ClaimFormExtractionSchema(BaseModel):
@@ -115,13 +119,21 @@ async def upload_file(file: UploadFile):
             schema = pydantic_to_json_schema(ClaimFormExtractionSchema)
             extract_response = client.extract(schema=schema, markdown=BytesIO(markdown_content.encode('utf-8')))
 
+            with open("extracts/extract_response.json", "w", encoding="utf-8") as f:
+                json.dump(extract_response.extraction, f, indent=4)
+            
             # Add extract response to the database
-            database.create_insured_information(extract_response.insuredInformation)
-            database.create_patient_information(extract_response.patientInformation)
-            database.create_other_insurance_information(extract_response.otherInsuranceInformation)
-            database.create_attestation(extract_response.attestation)
+            response_other = None
+            other_insurance_id = None
+            if "otherInsuranceInformation" in extract_response.extraction:
+                response_other = database.create_other_insurance_information(extract_response.extraction["otherInsuranceInformation"])
+                other_insurance_id = response_other.data[0]["id"]
+            response_insured = database.create_insured_information(extract_response.extraction["insuredInformation"], other_insurance_id)
+            response_att = database.create_attestation(extract_response.extraction["attestation"])
 
+            database.create_patient_information(extract_response.extraction["patientInformation"], response_insured.data[0]["id"], other_insurance_id, response_att.data[0]["id"])
 
+            
         except Exception as e:
             logger.error("Failed to parse document: %s", str(e))
             logger.error(traceback.format_exc())
