@@ -167,10 +167,9 @@ async def insert_extract():
     """ Insert extract """
     with open("extracts/extract_response.json", "r", encoding="utf-8") as f:
         extract_response = json.load(f)
-    
     response_other = None
     other_insurance_id = None
-    if "otherInsuranceInformation" in extract_response.extraction:
+    if "otherInsuranceInformation" in extract_response.extraction:      
         response_other = database.create_other_insurance_information(extract_response.extraction["otherInsuranceInformation"])
         other_insurance_id = response_other.data[0]["id"]
     response_insured = database.create_insured_information(extract_response.extraction["insuredInformation"], other_insurance_id)
@@ -178,78 +177,55 @@ async def insert_extract():
     database.create_patient_information(extract_response.extraction["patientInformation"], response_insured.data[0]["id"], response_att.data[0]["id"])
     return {"message": "Extract inserted successfully"}
 
-@app.get("/database/patient_information")
+@app.get("/patient_information")
 async def get_all_patient_information():
     """ Get all patient information """
     return database.get_all_patient_information()
 
-@app.get("/database/insured_information")
-async def get_all_insured_information():
-    """ Get all insured information """
-    return database.get_all_insured_information()
-
-@app.get("/database/other_insurance_information")
-async def get_all_other_insurance_information():
-    """ Get all other insurance information """
-    return database.get_all_other_insurance_information()
-
-@app.get("/database/attestation")
-async def get_all_attestation():
-    """ Get all attestation """
-    return database.get_all_attestation()
-
-@app.get("/database/patient_information/{patient_id}")
+@app.get("/patient_information/{patient_id}")
 async def get_patient_information(patient_id: int):
     """ Get patient information by id """
     return database.get_patient_information(patient_id)
 
-@app.get("/database/insured_information/{insured_id}")
-async def get_insured_information(insured_id: int):
-    """ Get insured information by id """
-    return database.get_insured_information(insured_id)
-
-@app.get("/database/other_insurance_information/{other_insurance_id}")
-async def get_other_insurance_information(other_insurance_id: int):
-    """ Get other insurance information by id """
-    return database.get_other_insurance_information(other_insurance_id)
-
-@app.get("/database/attestation/{attestation_id}")
-async def get_attestation(attestation_id: int):
-    """ Get attestation by id """
-    return database.get_attestation(attestation_id)
-
-@app.get("/database/patient_information/insured_id/{insured_id}")
+@app.get("/patient_information/insured_id/{insured_id}")
 async def get_all_patient_information_by_insured_id(insured_id: int):
     """ Get all patient information by insured id """
     return database.get_all_patient_information_by_insured_id(insured_id)
 
-@app.get("/database/insured_information/patient_id/{patient_id}")
-async def get_all_insured_information_by_patient_id(patient_id: int):
-    """ Get all insured information by patient id """
-    return database.get_all_insured_information_by_patient_id(patient_id)
+@app.get("/insured_information")
+async def get_all_insured_information():
+    """ Get all insured information """
+    return database.get_all_insured_information()
 
-@app.get("/database/other_insurance_information/insured_id/{insured_id}")
-async def get_all_other_insurance_information_by_insured_id(insured_id: int):
-    """ Get all other insurance information by insured id """
-    return database.get_all_other_insurance_information_by_insured_id(insured_id)
+@app.get("/insured_information/{insured_id}")
+async def get_insured_information(insured_id: int):
+    """ Get insured information by id """
+    return database.get_insured_information(insured_id)
 
-    """
-    Same as /database/migrate_extract but accepts a JSON file upload.
-    """
-    try:
-        raw_bytes = await file.read()
-        if not raw_bytes:
-            raise HTTPException(status_code=400, detail="Uploaded file is empty")
-        try:
-            raw = json.loads(raw_bytes.decode("utf-8"))
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}") from e
-        payload = ExtractResultsFile.model_validate(raw)
-        return database.migrate_extract_results(payload, dry_run=dry_run)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+@app.get("/insured_information/other_insurance/{other_insurance_id}")
+async def get_all_insured_information_by_other_insurance_id(other_insurance_id: int):
+    """ Get all insured information by other insurance id """
+    return database.get_all_insured_information_by_other_insurance_id(other_insurance_id)
+
+@app.get("/other_insurance_information")
+async def get_all_other_insurance_information():
+    """ Get all other insurance information """
+    return database.get_all_other_insurance_information()
+
+@app.get("/other_insurance_information/{other_insurance_id}")
+async def get_other_insurance_information(other_insurance_id: int):
+    """ Get other insurance information by id """
+    return database.get_other_insurance_information(other_insurance_id)
+
+@app.get("/attestation")
+async def get_all_attestation():
+    """ Get all attestation """
+    return database.get_all_attestation()
+
+@app.get("/attestation/{attestation_id}")
+async def get_attestation(attestation_id: int):
+    """ Get attestation by id """
+    return database.get_attestation(attestation_id)
 
 @app.get("/")
 async def read_root():
