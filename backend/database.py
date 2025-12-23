@@ -7,6 +7,7 @@ from typing import Any, Optional
 from dotenv import load_dotenv
 from supabase import Client, create_client
 from sqlmodel import Field, SQLModel
+from enum import StrEnum
 
 
 load_dotenv(override=True)
@@ -70,6 +71,27 @@ class AttestationBase(SQLModel):
     tax_number: int = Field(..., description="The attestation's tax number.")
     npi_number: int = Field(..., description="The attestation's NPI number.")
     date_of_insured_signed: str = Field(..., description="The attestation's date of insured signed.")
+
+class ClaimStatus(StrEnum):
+    """ Claim Status """
+    PROCESSING = "processing"
+    PAID = "paid"
+    DENIED = "denied"
+
+class ClaimBase(SQLModel):
+    """ Claim """
+    claim_id: str = Field(..., description="The claim's id.")
+    patient: str = Field(..., description="The claim's patient.")
+    procedure_code: int = Field(..., description="The claim's procedure code.")
+    procedure_name: str = Field(..., description="The claim's procedure name.")
+    date_of_service: str = Field(..., description="The claim's date of service.")
+    payer: str = Field(..., description="The claim's payer.")
+    billed_amount: float = Field(..., description="The claim's billed amount.")
+    expected: float = Field(..., description="The claim's expected reimbursement.")
+    actual: Optional[float] = Field(default=None, description="The claim's actual reimbursement.")
+    status: ClaimStatus = Field(..., description="The claim's status.")
+    patient_id: Optional[int] = Field(default=None, description="The claim's patient id.")
+    
 
 url: str = os.getenv("SUPABASE_URL")
 key: str = os.getenv("SUPABASE_KEY")
@@ -200,4 +222,15 @@ class Database:
         """ Delete an attestation """
         return self.supabase.from_("Attestation").delete().eq("id", attestation_id).execute()
 
+  # Claims Statements
+    def create_claim(self, claim: ClaimBase):
+        """Create a new claim."""
+        return self.supabase.from_("Claims").insert(self._to_insert_payload(claim)).execute()
     
+    def get_all_claims(self):
+        """Get all claims."""
+        return self.supabase.from_("Claims").select("*").execute()
+    
+    def get_claim(self, claim_id: int):
+        """Get a claim by id."""
+        return self.supabase.from_("Claims").select("*").eq("id", claim_id).execute()

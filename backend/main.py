@@ -177,6 +177,41 @@ async def insert_extract():
     database.create_patient_information(extract_response.extraction["patientInformation"], response_insured.data[0]["id"], response_att.data[0]["id"])
     return {"message": "Extract inserted successfully"}
 
+@app.post("/claim_upload")
+async def claim_upload(file: UploadFile):
+    """ Upload a claim """
+    temp_file_path = None
+    try:
+       if not file.filename:
+          logger.error("No filename provided in upload request")
+          raise HTTPException(status_code=400, detail="No filename provided")
+       file_content = await file.read()
+       file_size = len(file_content)
+       if file_size == 0:
+          raise HTTPException(status_code=400, detail="Uploaded file is empty")
+       with NamedTemporaryFile(delete=False, suffix=Path(file.filename).suffix) as temp_file:
+         temp_file.write(file_content)
+         temp_file_path = temp_file.name
+    
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        # Catch any unexpected errors
+        logger.error("Unexpected error in upload route: %s", str(e))
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error: {str(e)}. Check server logs for details."
+        ) from e
+    finally:
+        if temp_file_path and os.path.exists(temp_file_path):
+            try:
+                os.unlink(temp_file_path)
+            except OSError as e:
+                logger.warning("Failed to delete temporary file %s: %s", temp_file_path, str(e))
+    return {"message": "Claim uploaded successfully"}
+
 @app.get("/patient_information")
 async def get_all_patient_information():
     """ Get all patient information """
@@ -226,6 +261,21 @@ async def get_all_attestation():
 async def get_attestation(attestation_id: int):
     """ Get attestation by id """
     return database.get_attestation(attestation_id)
+
+@app.get("/claims")
+async def get_all_claims():
+    """ Get all claims """
+    return database.get_all_claims()
+
+@app.get("/claims/{claim_id}")
+async def get_claim(claim_id: int):
+    """ Get claim by id """
+    return database.get_claim(claim_id)
+
+@app.post("/claims")
+async def create_claim(claim: ClaimBase):
+    """ Create a new claim """
+    return database.create_claim(claim)
 
 @app.get("/")
 async def read_root():
