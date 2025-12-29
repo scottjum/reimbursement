@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 from landingai_ade import LandingAIADE
 from landingai_ade.lib import pydantic_to_json_schema
 from database import (Database, InsuredInformationBase, 
-PatientInformationBase, OtherInsuranceInformationBase, AttestationBase
+PatientInformationBase, OtherInsuranceInformationBase, AttestationBase, ClaimBase
 )
 
 load_dotenv(override=True)
