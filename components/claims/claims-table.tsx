@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Eye } from "lucide-react"
+import { Search, Eye, EyeOff } from "lucide-react"
 import type { Claim } from "@/lib/types"
 
 interface ClaimsTableProps {
@@ -17,6 +17,10 @@ export function ClaimsTable({ claims: initialClaims }: ClaimsTableProps) {
   const [claims, setClaims] = useState(initialClaims)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [hiddenClaimIds, setHiddenClaimIds] = useState<Set<string>>(new Set())
+
+  // Get API URL from environment variable or use default
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
   const filteredClaims = claims.filter((claim) => {
     const matchesSearch =
@@ -28,6 +32,9 @@ export function ClaimsTable({ claims: initialClaims }: ClaimsTableProps) {
 
     return matchesSearch && matchesStatus
   })
+
+  const hiddenClaims = claims.filter((claim) => hiddenClaimIds.has(claim.id))
+  const visibleClaims = filteredClaims.filter((claim) => !hiddenClaimIds.has(claim.id))
 
   const getStatusColor = (status: Claim["status"]) => {
     switch (status) {
@@ -52,6 +59,15 @@ export function ClaimsTable({ claims: initialClaims }: ClaimsTableProps) {
       style: "currency",
       currency: "USD",
     }).format(amount)
+  }
+
+  const toggleHidden = (claimId: string) => {
+    setHiddenClaimIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(claimId)) next.delete(claimId)
+      else next.add(claimId)
+      return next
+    })
   }
 
   return (
@@ -82,6 +98,34 @@ export function ClaimsTable({ claims: initialClaims }: ClaimsTableProps) {
         </Select>
       </div>
 
+      {hiddenClaimIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-2 text-sm">
+          <span className="text-muted-foreground">Hidden:</span>
+          {hiddenClaims.map((claim) => (
+            <Button
+              key={claim.id}
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-2 px-2 opacity-50 hover:opacity-100"
+              onClick={() => toggleHidden(claim.id)}
+              aria-label={`Show claim row ${claim.id}`}
+            >
+              <Eye className="h-4 w-4" />
+              <span className="font-mono text-xs">{claim.id}</span>
+            </Button>
+          ))}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-muted-foreground"
+            onClick={() => setHiddenClaimIds(new Set())}
+            aria-label="Show all hidden rows"
+          >
+            Show all
+          </Button>
+        </div>
+      )}
+
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -100,14 +144,14 @@ export function ClaimsTable({ claims: initialClaims }: ClaimsTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredClaims.length === 0 ? (
+            {visibleClaims.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={11} className="text-center text-muted-foreground">
                   No claims found
                 </TableCell>
               </TableRow>
             ) : (
-              filteredClaims.map((claim) => (
+              visibleClaims.map((claim) => (
                 <TableRow key={claim.id}>
                   <TableCell className="font-mono text-sm">{claim.id}</TableCell>
                   <TableCell className="font-medium">{claim.patientName}</TableCell>
@@ -135,8 +179,13 @@ export function ClaimsTable({ claims: initialClaims }: ClaimsTableProps) {
                     <Badge variant={getStatusColor(claim.status)}>{claim.status}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon">
-                      <Eye className="h-4 w-4" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => toggleHidden(claim.id)}
+                      aria-label={`Hide claim row ${claim.id}`}
+                    >
+                      <EyeOff className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -148,7 +197,7 @@ export function ClaimsTable({ claims: initialClaims }: ClaimsTableProps) {
 
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <div>
-          Showing {filteredClaims.length} of {claims.length} claims
+          Showing {visibleClaims.length} of {claims.length} claims{hiddenClaimIds.size > 0 ? ` (${hiddenClaimIds.size} hidden)` : ""}
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" disabled>

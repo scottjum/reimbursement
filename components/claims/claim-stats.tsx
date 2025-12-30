@@ -28,7 +28,7 @@ export function ClaimStats({ claims }: ClaimStatsProps) {
     {
       title: "Expected Reimbursement",
       value: `$${(totalExpected / 1000).toFixed(1)}K`,
-      subtitle: `${((totalExpected / totalBilled) * 100).toFixed(1)}% of billed`,
+      subtitle: totalBilled > 0 ? `${((totalExpected / totalBilled) * 100).toFixed(1)}% of billed` : "—",
       icon: TrendingUp,
       color: "text-accent",
     },

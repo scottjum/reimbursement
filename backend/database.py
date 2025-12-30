@@ -229,7 +229,7 @@ class Database:
     
     def get_all_claims(self):
         """Get all claims."""
-        return self.supabase.from_("Claims").select("*").execute()
+        return self.supabase.from_("Claims").select("*").order("claim_id", desc=False).execute()
     
     def get_claim(self, claim_id: int):
         """Get a claim by id."""
